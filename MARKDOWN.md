@@ -1,4 +1,5 @@
 ## Andrej Hric 27/07/2023
+
 # Omics Coursework PART 1 detailed analysis of Negative.fq#
 
 ## Practical Background information
@@ -30,8 +31,9 @@ fastqc trimmed_Negative.fq
 ```
 The report from the practical on Negative.fq only showed problems with 1. Per base sequence quality and 2. Per base N content shown bellow. The fastqc report showed issues with bp possitions [1-6] and [56-59] which are the 5' and 3' ends of the reads. The N base content showed that these bases were classified as other than ACTG bases and labelled as N due to low confidence of the base being one of the four main bases.
 
-![](/input_data/input_data/p1/fastq/trimmed_Negative_fastqc/Images/per_base_n_content.png)
-![](/input_data/p1/fastq/trimmed_Negative_fastqc/Images/per_base_sequence_content.png)
+![](/input_data/p1/fastq/trimmed_Negative_fastqc/Images/per_base_quality.png)
+
+![](/input_data/p1/fastq/trimmed_Negative_fastqc/Images/per_base_n_content.png)
 
 Next I preformed an alignemnt as in the practical with the same settings this was --end-to-end. However this alignment failed as it was unable to find a match to the reference genome. This is why I assumed that this is due to the bases at positions[1-6] and [56-59] as indicated by the fastQC report so the first five on 5'and last four on 3'ends. I then also performed a local alignment instead which could be a solution however the alignment result ended up having 0.00% alignment rate. 
 
@@ -72,9 +74,9 @@ bowtie2 --local --all -x input/p1/genome/AFPN02.1_merge -q input/p1/fastq/trimme
 ```
 I then produced a new fastQC report as shown bellow. This Report now has high quality for all positions, compared to the previous fastQC of the untrimmed Negative.fq. Also the summary.txt file provided when unziping the fastQC file showed that all tests were passed. The fastQC report is shown below along with the summary.txt content
 
-![](/input_data/p1/fastq/NEW_base_trimmed_Negative_fastqc/Images/per_base_n_content.png)
+![](/input_data/p1/fastq/NEW_base_trimmed_Negative_fastqc/Images/per_base_quality.png)
 
-![](/input_data/p1/fastq/NEW_base_trimmed_Negative_fastqc/Images/per_base_sequence_content.png)
+
 ```bash 
 PASS	Basic Statistics	NEW_base_trimmed_Negative.fq
 PASS	Per base sequence quality	NEW_base_trimmed_Negative.fq
@@ -138,8 +140,9 @@ By doing this I could resolve the question wht the original figure in the course
 
 ![](/output_data/p1/multiqc_report/bowtie2_se_plot.png)
 
-# Conclusion of coursework
+# Conclusion of coursework P1
 
 In my genomic sequencing analysis, I initially attempted to align the reads using bowtie2 without preprocessing. This direct approach resulted in an alignment rate of 0%, which was quite disappointing. The FastQC analysis had already shown that the extremities of the reads were plagued with ‘N’ bases—ambiguous indicators that represent uncertainty in nucleotide identity. These ‘N’ bases, found primarily at the 5’ and 3’ ends, effectively hindered proper alignment to the reference genome, as they obscured the true biological sequences.
 
 Considering these challenges, I decided to implement a trimming strategy. I trimmed the first 5 bases from the 5’ end and the last 4 bases from the 3’ end of each read, targeting precisely those regions flagged by FastQC. I think this approach was necessary to get rid off the problematic bases which were causing misalignments. This adjustment improved the alignment rate to 99.97%. I consider the trimmed alignment method better and easies as when I removed these problem N sections, the reads aligned closely to the genome, demonstrating the substantial impact that even simple preprocessing steps can have on the quality and utility of NGS data. This experience has reinforced my belief in the critical role of preprocessing in enhancing the accuracy of genomic analyses.
+
