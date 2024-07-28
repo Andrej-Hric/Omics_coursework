@@ -1,0 +1,11 @@
+# Ignore all .sam files in the output_data/p1 directory
+output_data/p1/*.sam
+
+# Ignore all .fq files in the input_data/p1/fastq directory
+input_data/p1/fastq/*.fq
+
+# Add any other files or directories you want to exclude
+# Example: Ignore all .zip files in the fastq directory
+input_data/p1/fastq/*.zip
+.Rproj.user
+.DS_Store

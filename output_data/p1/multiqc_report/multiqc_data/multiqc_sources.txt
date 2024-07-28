@@ -1,0 +1,5 @@
+Module	Section	Sample Name	Source
+Samtools	stats	New_Negative_trim_stats	/Users/andrejhric/Desktop/omics_coursework/output_data/p1/New_Negative_trim_stats.txt
+Samtools	flagstat	New_Negative_trim_flagstats	/Users/andrejhric/Desktop/omics_coursework/output_data/p1/New_Negative_trim_flagstats.txt
+Bowtie 2 / HiSAT2	all_sections	Negative_local_bowtie_output_statistics	/Users/andrejhric/Desktop/omics_coursework/output_data/p1/Negative_local_bowtie_output_statistics.txt
+Bowtie 2 / HiSAT2	all_sections	New_Negative_trim_bowtie_output_statistics	/Users/andrejhric/Desktop/omics_coursework/output_data/p1/New_Negative_trim_bowtie_output_statistics.txt
