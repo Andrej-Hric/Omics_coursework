@@ -8,3 +8,4 @@ input_data/p1/fastq/*.fq
 # Example: Ignore all .zip files in the fastq directory
 input_data/p1/fastq/*.zip
 .Rproj.user
+.DS_Store
