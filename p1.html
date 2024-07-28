@@ -21,6 +21,7 @@
             padding: 10px;
             white-space: pre-wrap; /* Allows the text to wrap */
             word-wrap: break-word;  /* Breaks long words */
+            margin-top: 20px;
         }
         img {
             display: block;
@@ -34,6 +35,9 @@
         <h1>Omics Coursework Part 1</h1>
         <p><strong>Author:</strong> Andrej Hric</p>
         <p><strong>Date:</strong> 27/07/2023</p>
+
+        <p>All code for this coursework, along with further instructions and data, is available at my Git repository. Due to issues with hosting larger files (LSF) requiring additional storage space on GitHub, I chose to remove them for easier access. However, following the steps documented, they can be recreated.</p>
+        <pre><code>Repository link: https://github.com/Andrej-Hric/Omics_coursework.git</code></pre>
 
         <h2>Practical Background information</h2>
         <p>The practical session involving whole-genome sequencing data, the file <code>Negative.fq</code>, extracted using specific barcodes, exhibited poor mapping results compared to other samples like <code>Positive.fq</code>. The purpose of this coursework was to analyse and explain this poor performance using best practices in NGS data handling and alignment techniques.</p>
@@ -150,7 +154,7 @@ multiqc output_data/p1/ -o output_data/p1/multiqc_report</code></pre>
         <img src="https://github.com/Andrej-Hric/Omics_coursework/raw/main/images_html/bowtie2_se_plot.png" alt="Bowtie2 SE Plot">
 
         <h2>Conclusion of coursework P1</h2>
-        <p>In my genomic sequencing analysis, I initially attempted to align the reads using bowtie2 without preprocessing. This direct approach resulted in an alignment rate of 0%, which was quite disappointing. The FastQC analysis had already shown that the extremities of the reads were plagued with ‘N’ bases—ambiguous indicators that represent uncertainty in nucleotide identity. These ‘N’ bases, found primarily at the 5’ and 3’ ends, effectively hindered proper alignment to the reference genome, as they obscured the true biological sequences.</p>
+        <p>In my genomic sequencing analysis, I initially attempted to align the reads using bowtie2 without preprocessing. This direct approach resulted in an alignment rate of 0%, which was quite disappointing. The FastQC analysis had already shown that the extremities of the reads were plagued with ‘N’ bases which are indicators that represent uncertainty in nucleotide identity. These ‘N’ bases, found primarily at the 5’ and 3’ ends, effectively hindered proper alignment to the reference genome, as they obscured the true biological sequences.</p>
 
         <p>Considering these challenges, I decided to implement a trimming strategy. I trimmed the first 5 bases from the 5’ end and the last 4 bases from the 3’ end of each read, targeting precisely those regions flagged by FastQC. I think this approach was necessary to get rid of the problematic bases which were causing misalignments. This adjustment improved the alignment rate to 99.97%. I consider the trimmed alignment method better and easier as when I removed these problem N sections, the reads aligned closely to the genome, demonstrating the substantial impact that even simple preprocessing steps can have on the quality and utility of NGS data. This experience has reinforced my belief in the critical role of preprocessing in enhancing the accuracy of genomic analyses.</p>
     </div>
