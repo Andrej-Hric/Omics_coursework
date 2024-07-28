@@ -1,5 +1,0 @@
-Sample	Samtools: stats_mqc_generalstats_samtools_stats_error_rate	Samtools: stats_mqc_generalstats_samtools_stats_non_primary_alignments	Samtools: stats_mqc_generalstats_samtools_stats_reads_mapped	Samtools: stats_mqc_generalstats_samtools_stats_reads_mapped_percent	Samtools: stats_mqc_generalstats_samtools_stats_reads_properly_paired_percent	Samtools: stats_mqc_generalstats_samtools_stats_reads_MQ0_percent	Samtools: stats_mqc_generalstats_samtools_stats_raw_total_sequences_1	Samtools: flagstat_mqc_generalstats_samtools_flagstat_flagstat_total_1	Samtools: flagstat_mqc_generalstats_samtools_flagstat_mapped_passed_1	Samtools: flagstat_mqc_generalstats_samtools_flagstat_mapped_passed_pct_1	Bowtie 2 / HiSAT2_mqc_generalstats_bowtie_2_hisat2_overall_alignment_rate
-Negative_local_bowtie_output_statistics											0.0
-New_Negative_trim_bowtie_output_statistics											99.97
-New_Negative_trim_flagstats								1.2053639999999999	1.205056	99.97	
-New_Negative_trim_stats	0.1135322	0.129044	1.076012	99.97138397502601	0.0	0.0002787275159803776	1.07632				

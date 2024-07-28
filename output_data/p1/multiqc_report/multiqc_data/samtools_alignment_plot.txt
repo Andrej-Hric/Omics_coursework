@@ -1,2 +1,0 @@
-Sample	Mapped (with MQ>0)	MQ0	Unmapped
-New_Negative_trim_stats	1076009	3	308

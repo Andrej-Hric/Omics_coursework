@@ -1,2 +1,0 @@
-Sample	Total Reads	Total Passed QC	Mapped	Secondary Alignments	Duplicates	Paired in Sequencing	Properly Paired	Self and mate mapped	Singletons	Mate mapped to diff chr	Diff chr (mapQ >= 5)
-New_Negative_trim_flagstats	100.0	100.0	99.97444755277243	10.705811688419432	0.0	0.0	0.0	0.0	0.0	0.0	0.0

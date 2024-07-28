@@ -1,3 +1,0 @@
-Sample	SE mapped uniquely	SE multimapped	SE not aligned
-Negative_local_bowtie_output_statistics	0	0	1076320
-New_Negative_trim_bowtie_output_statistics	1020237	55775	308
