@@ -3,3 +3,5 @@ output_data/p1/Negative_trim.sam filter=lfs diff=lfs merge=lfs -text
 output_data/p1/Negative_local.sam filter=lfs diff=lfs merge=lfs -text
 input_data/p1/fastq/trimmed_Negative.fq filter=lfs diff=lfs merge=lfs -text
 input_data/p1/fastq/NEW_base_trimmed_Negative.fq filter=lfs diff=lfs merge=lfs -text
+input_data/p2/.RData filter=lfs diff=lfs merge=lfs -text
+input_data/p1/fastq/input/part1/fastq/trimmed_Negative.fq filter=lfs diff=lfs merge=lfs -text
