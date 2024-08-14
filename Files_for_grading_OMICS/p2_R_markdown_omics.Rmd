@@ -438,21 +438,12 @@ mean in group CTL mean in group ASD
 
 Given that the samples originated from humans and differ biologically, and considering the variations observed in sequencing statistics, I could improve my method by incorporating additional covariates such as sex, age, RNA integrity number (RIN), and brain bank origin to account for confounding variables as they did in the original paper and this could imrpove the accuracy of the model by creating a multivariate regression model to acocunt for all of these covariates at the same time.
 
-Next I could imrpove the readabiltiy of the data by removing low-queality samples and introduces quality control for this.
+Next I could imrpove the readability of the data by removing low-queality samples and introduces quality control for this.
  
 Also I could use the same more advanced normalization techniques as in the original paper, such as adjusted FPKMs via regression analysis, better accounts for sequencing depth and sample quality variability, increasing comparability. Increase the sample size as I said in the last answer in question v).
 
 ```{r}
-gene_id <- "ENSG00000000457"
-gene_counts <- plotCounts(dds, gene_id, intgroup = "diagnosis", returnData = TRUE)
-print(gene_c
-      
-      
-      
-      
-      
-      
-      library(shiny)
+library(shiny)
 library(ggplot2)
 library(ggrepel)
 library(DESeq2)
@@ -460,6 +451,9 @@ library(DT)
 library(dplyr)
 library(tidyr)
 library(biomaRt)
+library(shinythemes)
+
+set.seed(123)  # Ensure reproducibility
 
 # Load data from GitHub
 load_data <- function() {
@@ -500,73 +494,80 @@ df.plot.gene <- data$df.plot.gene
 
 ui <- fluidPage(
   titlePanel("Gene Expression Explorer"),
-  
   sidebarLayout(
     sidebarPanel(
-      selectInput("sig", "Significance", c("All", levels(df.plot.gene$sig))),
-      DT::dataTableOutput("table")
+      textInput("gene_id", "Enter Gene ID or Name:", value = ""),
+      actionButton("search", "Search")
     ),
-    
     mainPanel(
       tabsetPanel(
         tabPanel("Volcano Plot", plotOutput("volcano")),
-        tabPanel("Box Plot", plotOutput("boxplot"))
+        tabPanel("Box Plot", plotOutput("boxplot", height = "600px")),  # Make boxplot taller
+        tabPanel("About", tags$div(id = "about", 
+                                   tags$p("This Shiny app allows users to explore gene expression data from a study on autistic and neurotypical brains."),
+                                   tags$p("Users can search for specific genes and view their expression counts across different samples."),
+                                   tags$p("The app includes a volcano plot for visualizing differential expression and a box plot for viewing gene counts."),
+                                   tags$p("This app is created as part of the coursework for the Omics module in the MSc Bioinformatics program at Birkbeck, University of London.")
+        ))
+      ),
+      fluidRow(
+        column(
+          12, DT::dataTableOutput("table")
+        )
       )
     )
   )
 )
 
-server <- function(input, output) {
-  # Reactive dataframe based on significance filter
-  df.shiny <- reactive({
-    if (input$sig != "All") {
-      df.plot.gene[df.plot.gene$sig == input$sig, ]
-    } else {
-      df.plot.gene
-    }
-  })
-  
+server <- function(input, output, session) {
   # Render the table
   output$table <- DT::renderDataTable({
-    df.shiny()
-  })
-  
-  # Function to get the gene selection
-  df.click <- reactive({
-    if (length(input$table_rows_selected)) {
-      df.shiny()[input$table_rows_selected, ]
-    } else {
-      df.plot.gene[df.plot.gene$gene_name == "SRRM4", ]
-    }
-  })
+    df.plot.gene %>%
+      mutate(across(where(is.numeric), ~ round(., 3)))
+  }, options = list(pageLength = 5, selection = "single"))
   
   # Reactive function for gene selection
+  df.click <- reactive({
+    req(input$search)
+    isolate({
+      gene_id <- input$gene_id
+      if (gene_id %in% df.plot.gene$ensembl_id | gene_id %in% df.plot.gene$gene_name) {
+        df.plot.gene[df.plot.gene$ensembl_id == gene_id | df.plot.gene$gene_name == gene_id, ]
+      } else {
+        df.plot.gene[df.plot.gene$gene_name == "SRRM4", ]
+      }
+    })
+  })
+  
   get.df <- reactive({
-    df.click()
+    selected <- input$table_rows_selected
+    if (length(selected)) {
+      df.plot.gene[selected, ]
+    } else {
+      df.click()
+    }
   })
   
   # Volcano plot
   output$volcano <- renderPlot({
     p <- ggplot(df.plot.gene, aes(log2FoldChange, -log10(padj), col=sig)) +
       geom_point(size=0.5) + 
-      scale_color_manual(values = c("red", "blue", "gray50", "gray80")) +
+      scale_color_manual(values = c("orange", "gray")) +
       theme_bw(base_size = 16)
     p$labels$colour <- "Significance"
     
     df.temp <- get.df()
-    p <- p + geom_point(data = df.temp, size=1.5, col="black", shape = 23) +
-      scale_fill_manual(values = c("red", "blue", "gray50", "gray80")) +
+    p <- p + geom_point(data = df.temp, size=1.5, col="magenta", shape = 23) +
       geom_text_repel(
         data = df.temp,
         aes(label = gene_label),
-        col = "black"
+        col = "magenta"
       )
     p
   })
   
   # Boxplot
   output$boxplot <- renderPlot({
-    # Get gene name and ensembl id
     df.temp <- get.df()
     gene_ensembl <- tail(df.temp, 1)$ensembl_id
     gene_title <- tail(df.temp, 1)$gene_label
@@ -585,8 +586,8 @@ server <- function(input, output) {
       theme_bw(base_size = 16) +
       theme(plot.title = element_text(hjust = 0.5))
     q
-  })
+  }, height = 600)  # Make boxplot taller
 }
 
 shinyApp(ui = ui, server = server)
-
+```
