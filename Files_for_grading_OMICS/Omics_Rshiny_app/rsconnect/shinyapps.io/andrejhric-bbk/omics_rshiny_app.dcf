@@ -1,0 +1,10 @@
+name: omics_rshiny_app
+title:
+username: andrejhric-bbk
+account: andrejhric-bbk
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 12382444
+bundleId: 8922114
+url: https://andrejhric-bbk.shinyapps.io/omics_rshiny_app/
+version: 1

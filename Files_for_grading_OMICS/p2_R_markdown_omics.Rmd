@@ -442,4 +442,151 @@ Next I could imrpove the readabiltiy of the data by removing low-queality sample
  
 Also I could use the same more advanced normalization techniques as in the original paper, such as adjusted FPKMs via regression analysis, better accounts for sequencing depth and sample quality variability, increasing comparability. Increase the sample size as I said in the last answer in question v).
 
+```{r}
+gene_id <- "ENSG00000000457"
+gene_counts <- plotCounts(dds, gene_id, intgroup = "diagnosis", returnData = TRUE)
+print(gene_c
+      
+      
+      
+      
+      
+      
+      library(shiny)
+library(ggplot2)
+library(ggrepel)
+library(DESeq2)
+library(DT)
+library(dplyr)
+library(tidyr)
+library(biomaRt)
+
+# Load data from GitHub
+load_data <- function() {
+  count_data_url <- "https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/input_data/p2/GSE64018_countlevel_12asd_12ctl_edited.txt"
+  metadata_url <- "https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/input_data/p2/metadata.txt"
+  
+  count_data <- read.table(count_data_url, header = TRUE, row.names = 1)
+  metadata <- read.table(metadata_url, header = TRUE, row.names = 1)
+  
+  metadata <- metadata %>% mutate(across(where(is.character), as.factor))
+  dds <- DESeqDataSetFromMatrix(countData = count_data, colData = metadata, design = ~ diagnosis)
+  dds$diagnosis <- relevel(dds$diagnosis, ref = "CTL")
+  dds <- dds[rowSums(counts(dds)) > 10, ]
+  dds <- DESeq(dds)
+  
+  res <- results(dds)
+  df.plot <- as.data.frame(res) %>% drop_na(padj)
+  df.plot <- df.plot[order(abs(df.plot$log2FoldChange), decreasing = TRUE), ]
+  df.plot <- mutate(df.plot, sig = ifelse(df.plot$padj < 0.05, "FDR<0.05", "Not sig"))
+  df.plot <- cbind(df.plot, top10 = "no")
+  top10.index <- rownames(df.plot[df.plot$sig == "FDR<0.05", ][1:10, ])
+  df.plot[top10.index, "top10"] <- "yes"
+  
+  ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+  g <- getBM(attributes = c("ensembl_gene_id", "external_gene_name"), filters = "ensembl_gene_id", mart = ensembl, values = rownames(df.plot))
+  df.plot$ensembl_id <- rownames(df.plot)
+  df.plot.gene <- merge(df.plot, g, by.x = "ensembl_id", by.y = "ensembl_gene_id")
+  colnames(df.plot.gene)[10] <- "gene_name"
+  
+  df.plot.gene$gene_label <- ifelse(df.plot.gene$gene_name == "", df.plot.gene$ensembl_id, df.plot.gene$gene_name)
+  
+  list(dds = dds, df.plot.gene = df.plot.gene)
+}
+
+data <- load_data()
+dds_DGE <- data$dds
+df.plot.gene <- data$df.plot.gene
+
+ui <- fluidPage(
+  titlePanel("Gene Expression Explorer"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("sig", "Significance", c("All", levels(df.plot.gene$sig))),
+      DT::dataTableOutput("table")
+    ),
+    
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Volcano Plot", plotOutput("volcano")),
+        tabPanel("Box Plot", plotOutput("boxplot"))
+      )
+    )
+  )
+)
+
+server <- function(input, output) {
+  # Reactive dataframe based on significance filter
+  df.shiny <- reactive({
+    if (input$sig != "All") {
+      df.plot.gene[df.plot.gene$sig == input$sig, ]
+    } else {
+      df.plot.gene
+    }
+  })
+  
+  # Render the table
+  output$table <- DT::renderDataTable({
+    df.shiny()
+  })
+  
+  # Function to get the gene selection
+  df.click <- reactive({
+    if (length(input$table_rows_selected)) {
+      df.shiny()[input$table_rows_selected, ]
+    } else {
+      df.plot.gene[df.plot.gene$gene_name == "SRRM4", ]
+    }
+  })
+  
+  # Reactive function for gene selection
+  get.df <- reactive({
+    df.click()
+  })
+  
+  # Volcano plot
+  output$volcano <- renderPlot({
+    p <- ggplot(df.plot.gene, aes(log2FoldChange, -log10(padj), col=sig)) +
+      geom_point(size=0.5) + 
+      scale_color_manual(values = c("red", "blue", "gray50", "gray80")) +
+      theme_bw(base_size = 16)
+    p$labels$colour <- "Significance"
+    
+    df.temp <- get.df()
+    p <- p + geom_point(data = df.temp, size=1.5, col="black", shape = 23) +
+      scale_fill_manual(values = c("red", "blue", "gray50", "gray80")) +
+      geom_text_repel(
+        data = df.temp,
+        aes(label = gene_label),
+        col = "black"
+      )
+    p
+  })
+  
+  # Boxplot
+  output$boxplot <- renderPlot({
+    # Get gene name and ensembl id
+    df.temp <- get.df()
+    gene_ensembl <- tail(df.temp, 1)$ensembl_id
+    gene_title <- tail(df.temp, 1)$gene_label
+    
+    gene_data <- plotCounts(dds_DGE, gene_ensembl, "diagnosis", returnData = TRUE)
+    
+    q <- ggplot(gene_data, aes(diagnosis, count)) +
+      geom_boxplot() +
+      geom_jitter(aes(col = diagnosis), alpha = 0.4, width = 0.1) +
+      labs(
+        title = gene_title,
+        x = "Diagnosis",
+        y = "Normalized count"
+      ) +
+      guides(col = "none") +
+      theme_bw(base_size = 16) +
+      theme(plot.title = element_text(hjust = 0.5))
+    q
+  })
+}
+
+shinyApp(ui = ui, server = server)
 

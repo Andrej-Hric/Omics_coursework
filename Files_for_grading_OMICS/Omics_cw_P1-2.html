@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Omics Coursework Part 1</title>
+    <title>Omics Coursework</title>
     <style>
         body {
             display: flex;
@@ -19,14 +19,24 @@
             background-color: #f4f4f4;
             border: 1px solid #ddd;
             padding: 10px;
-            white-space: pre-wrap; /* Allows the text to wrap */
-            word-wrap: break-word;  /* Breaks long words */
+            white-space: pre-wrap;
+            word-wrap: break-word;
             margin-top: 20px;
         }
         img {
             display: block;
             margin: 10px 0;
             max-width: 100%;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+        .note {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -36,10 +46,12 @@
         <p><strong>Author:</strong> Andrej Hric</p>
         <p><strong>Date:</strong> 27/07/2023</p>
 
+        <p class="note">All files for grading Part 1 Markdown file and Part 2 R Markdown file and R shiny app (app.R) can be found on GitHub at <code>/Files_for_grading_OMICS</code></p>
+
         <p>All code for this coursework, along with further instructions and data, is available at my Git repository. Due to issues with hosting larger files (LSF) requiring additional storage space on GitHub, I chose to remove them for easier access. However, following the steps documented, they can be recreated.</p>
         <pre><code>Repository link: https://github.com/Andrej-Hric/Omics_coursework.git</code></pre>
 
-        <h2>Practical Background information</h2>
+        <h2>Practical Background Information</h2>
         <p>The practical session involving whole-genome sequencing data, the file <code>Negative.fq</code>, extracted using specific barcodes, exhibited poor mapping results compared to other samples like <code>Positive.fq</code>. The purpose of this coursework was to analyse and explain this poor performance using best practices in NGS data handling and alignment techniques.</p>
 
         <h2>Environment Setup</h2>
@@ -54,7 +66,7 @@ conda install -c bioconda cutadapt bowtie2 samtools fastqc multiqc</code></pre>
 
         <p>I used conda and created new environment to ensure that there are no software dependencies conflict which I found to be issue originally when not using conda. Also having this specific environment I could call it whenever necessary in future.</p>
 
-        <h2>Issues with original reads and improving of the mapping</h2>
+        <h2>Issues with Original Reads and Improving of the Mapping</h2>
         <p>I ran FastQC report on Negative.fq file which we want to analyze in detail from practical</p>
         <pre><code>cd input_data/p1/fastq
 fastqc trimmed_Negative.fq</code></pre>
@@ -113,7 +125,7 @@ PASS    Adapter Content    NEW_base_trimmed_Negative.fq</code></pre>
 
         <p>With this information I could proceed to a new alignment as all information seemed correct up until this point.</p>
 
-        <h2>Remapping based on N calls being the problem</h2>
+        <h2>Remapping Based on N Calls Being the Problem</h2>
         <p>To replicate the alignment score and prove my hypothesis I produced a new file trimming 5' and 3' ends and also all N calls, effectively to eliminate any issue causing bases.</p>
         <pre><code># remove all N calls and first 5 and last 4 positions
 cutadapt --trim-n --trim5 5 --trim3 4 -o input_data/p1/fastq/NEW_base_trimmed_Negative.fq input_data/p1/fastq/trimmed_Negative.fq
@@ -131,7 +143,7 @@ bowtie2 --end-to-end --all -x input_data/p1/genomes/AFPN02.1_merge -q input_data
         99.97% overall alignment rate
 """ </code></pre>
 
-        <h2>FINAL mapping statistics</h2>
+        <h2>FINAL Mapping Statistics</h2>
         <p>To get the mapping statistics I looked up samtools commands for this.</p>
         <pre><code># first I converted SAM files to BAM format for more efficient handling and processing as BAM file is smaller and faster and recommended to use for samtool
 
@@ -153,10 +165,594 @@ multiqc output_data/p1/ -o output_data/p1/multiqc_report</code></pre>
 
         <img src="https://github.com/Andrej-Hric/Omics_coursework/raw/main/images_html/bowtie2_se_plot.png" alt="Bowtie2 SE Plot">
 
-        <h2>Conclusion of coursework P1</h2>
+        <h2>Conclusion of Coursework Part 1</h2>
         <p>In my genomic sequencing analysis, I initially attempted to align the reads using bowtie2 without preprocessing. This direct approach resulted in an alignment rate of 0%, which was quite disappointing. The FastQC analysis had already shown that the extremities of the reads were plagued with ‘N’ bases which are indicators that represent uncertainty in nucleotide identity. These ‘N’ bases, found primarily at the 5’ and 3’ ends, effectively hindered proper alignment to the reference genome, as they obscured the true biological sequences.</p>
 
         <p>Considering these challenges, I decided to implement a trimming strategy. I trimmed the first 5 bases from the 5’ end and the last 4 bases from the 3’ end of each read, targeting precisely those regions flagged by FastQC. I think this approach was necessary to get rid of the problematic bases which were causing misalignments. This adjustment improved the alignment rate to 99.97%. I consider the trimmed alignment method better and easier as when I removed these problem N sections, the reads aligned closely to the genome, demonstrating the substantial impact that even simple preprocessing steps can have on the quality and utility of NGS data. This experience has reinforced my belief in the critical role of preprocessing in enhancing the accuracy of genomic analyses.</p>
-    </div>
+
+        <h1>Omics Coursework Part 2</h1>
+        <p><strong>Author:</strong> Andrej Hric</p>
+        <p><strong>Date:</strong> 28/07/2024</p>
+
+        <h2>Load Libraries</h2>
+        <pre><code>```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#libraries for Questions i-vi
+library(DESeq2)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(biomaRt)
+
+#libraries for shiny app Question vii
+library(shiny)
+library(shinythemes)
+```</code></pre>
+
+        <h2>Question i) Differential Expression Analysis Using DESeq2</h2>
+        <pre><code>```{r differential-expression-analysis}
+
+#check and set correct working directory(adjust to ../input_data/p2  )
+print(getwd())
+setwd("/Users/andrejhric/Desktop/omics_coursework/input_data/p2")
+
+#loading count data (containing gene expression counts for each sample) 
+count_data <- read.table("GSE64018_countlevel_12asd_12ctl_edited.txt", header = TRUE, row.names = 1)
+print("count data loaded correctly")
+
+#loading metadata txt file
+metadata <- read.table("metadata.txt", header = TRUE, row.names = 1)
+print("metadata loaded correctly")
+
+#create DESeqDataSet object
+dds <- DESeqDataSetFromMatrix(countData = count_data, colData = metadata, design = ~ diagnosis)     
+
+```</code></pre>
+
+        <pre><code>Warning in DESeqDataSet(se, design = design, ignoreRank) :
+  some variables in design formula are characters, converting to factors
+```</code></pre>
+
+        <pre><code>```{r check-data-types}
+#check variable types and convert character variables to factors
+str(metadata)
+
+metadata <- metadata %>%
+  mutate(across(where(is.character), as.factor))
+
+#check changes after converting
+str(metadata)
+```</code></pre>
+
+        <pre><code># Original output (truncated)
+  data.frame':	24 obs. of  22 variables:
+   $ regionid                    : chr  "ba41-42-22" "ba41-42-22" "ba41-42-22" "ba41-42-22" ...
+   $ diagnosis                   : chr  "ASD" "ASD" "ASD" "ASD" ...
+   $ Sex                         : chr  "M" "M" "F" "F" ...
+   $ brainbank                   : chr  "ATP" "ATP" "NICHD" "ATP" ...
+```</code></pre>
+        <pre><code> # Output after converting (truncated)
+  'data.frame':	24 obs. of  22 variables:
+   $ regionid                    : Factor w/ 1 level "ba41-42-22": 1 1 1 1 1 1 1 1 1 1 ...
+   $ diagnosis                   : Factor w/ 2 levels "ASD","CTL": 1 1 1 1 1 1 1 1 1 1 ...
+   $ Sex                         : Factor w/ 2 levels "F","M": 2 2 1 1 2 1 2 2 2 1 ...
+   $ brainbank                   : Factor w/ 2 levels "ATP","NICHD": 1 1 2 1 1 1 1 1 1 1 ...
+```</code></pre>
+
+        <pre><code>```{r check-data-types}
+#rerun dds
+dds <- DESeqDataSetFromMatrix(countData = count_data, colData = metadata, design = ~ diagnosis)     
+
+#reveal diagnosis factor, by specifying reference level (set control group as reference)
+dds$diagnosis <- relevel(dds$diagnosis, ref = "CTL")
+
+#filter out low read counts (10 set as threshold commonly used in RNA-seq analysis to balance between removing noise but retaining potential genes of interest)
+dds <- dds[rowSums(counts(dds)) > 10, ]
+
+#run pipeline (this also normalizes data as DESeq internally estimates dispersions, size factors, and fits the model to perform the analysis)
+dds <- DESeq(dds)
+```</code></pre>
+
+        <pre><code>Output 
+  estimating size factors
+  estimating dispersions
+  gene-wise dispersion estimates
+  mean-dispersion relationship
+  final dispersion estimates
+  fitting model and testing
+  -- replacing outliers and refitting for 558 genes
+  -- DESeq argument 'minReplicatesForReplace' = 7 
+  -- original counts are preserved in counts(dds)
+  estimating dispersions
+  fitting model and testing
+```</code></pre>
+
+        <pre><code>```{r show results}
+#display results
+res<- results(dds)
+res
+```</code></pre>
+
+        <pre><code>Output
+
+log2 fold change (MLE): diagnosis ASD vs CTL 
+Wald test p-value: diagnosis ASD vs CTL 
+DataFrame with 42839 rows and 6 columns
+                 baseMean log2FoldChange     lfcSE       stat    pvalue      padj
+                <numeric>      <numeric> <numeric>  <numeric> <numeric> <numeric>
+ENSG00000000003  90.51022     0.02881461  0.224423  0.1283941  0.897837  0.957595
+ENSG00000000005   2.39821     0.44433068  0.569226  0.7805879  0.435045  0.678601
+ENSG00000000419 248.03262    -0.30067187  0.235277 -1.2779468  0.201268  0.458348
+ENSG00000000457 218.69538    -0.18747117  0.147460 -1.2713367  0.203609  0.461427
+ENSG00000000460  90.22595    -0.00792495  0.156331 -0.0506934  0.959570  0.984731
+...                   ...            ...       ...        ...       ...       ...
+ENSG00000272541  9.131107     -0.5903244  0.332623 -1.7747579 0.0759379  0.282732
+ENSG00000272542 15.303447     -0.2188573  0.282689 -0.7741985 0.4388134  0.681977
+ENSG00000272543 61.674685      0.2284879  0.238438  0.9582688 0.3379272  0.595390
+ENSG00000272544  5.684451      0.5185789  0.375903  1.3795542 0.1677239  0.417281
+ENSG00000272545  0.454525     -0.0114485  1.241902 -0.0092185 0.9926448        NA
+```</code></pre>
+
+        <h2>Question ii) Number of Genes Differentially Expressed (Up/Down Regulated) at Adjusted P-Value Cut Off of 0.05</h2>
+        <pre><code>```{r}
+#count differentially expressed genes with padj < 0.05
+num_diff_expressed <- sum(res$padj < 0.05, na.rm=TRUE)  
+
+#print result of counting 
+cat("total number of differentially expressed genes (padj < 0.05):", num_diff_expressed, "\n")
+```</code></pre>
+
+        <pre><code>```{r}
+#count up and down regulated genes (padj < 0.05 and log2FoldChange > 0)
+num_upregulated <- sum(res$padj < 0.05 & res$log2FoldChange > 0, na.rm=TRUE)
+
+num_downregulated <- sum(res$padj < 0.05 & res$log2FoldChange < 0, na.rm=TRUE)
+
+#print results
+cat("number of upregulated genes (padj < 0.05):", num_upregulated, "\n")
+cat("number of downregulated genes (padj < 0.05):", num_downregulated, "\n")
+cat("total number of differentially expressed genes (padj < 0.05):", num_diff_expressed, "\n")
+```</code></pre>
+
+Number of upregulated genes (padj < 0.05): 1169 
+Number of downregulated genes (padj < 0.05): 67 
+<br>
+The total number of differentially expressed genes (padj < 0.05) is 1236 
+
+
+
+        <h2>Question iii) Volcano Plot</h2>
+        <p>This volcano plot below displays differentially expressed genes. In the first volcano plot, genes that are statistically significant, with adjusted p-values less than 0.05, are shown in blue. The top 10 genes with the highest absolute fold change are labeled with their corresponding Ensembl IDs, and these genes are slightly larger for better visibility.</p>
+        <p>The second volcano plot highlights the upregulated and downregulated genes. Upregulated genes are depicted in orange, while downregulated genes are shown in purple. Additionally, this plot indicates that all of the top 10 genes were upregulated.</p>
+
+        <pre><code>```{r volcano-plot, fig.width=10, fig.height=8}
+#convert results to a data frame for ggplot2
+res_df <- as.data.frame(res)
+
+#remove rows with NA in the adjusted p-value column to avoid errors
+res_df <- res_df %>% drop_na(padj)
+
+#add column to indicate significant genes (adjusted p-value < 0.05)
+res_df <- mutate(res_df, sig = ifelse(padj < 0.05, "significant", "not significant"))
+
+#add column to indicate the top 10 signif genes
+top_n <- 10
+res_df <- res_df %>%
+  arrange(desc(abs(log2FoldChange))) %>%
+  mutate(top10 = ifelse(row_number() <= top_n, TRUE, FALSE))
+
+#create volano plot
+volcano_plot <- ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = sig)) +
+  geom_point(size = 0.75) +
+  scale_color_manual(values = c("black", "blue"), labels = c("not significant", "fdr<0.05")) +
+  labs(x = "log2 fold change", y = "-log10 adjusted p-value", color = "significance") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),  # increase the size of legend text
+    legend.key.size = unit(1.5, "lines"),   # increase the size of legend points
+    panel.grid.major = element_line(color = "grey80"),
+    panel.grid.minor = element_line(color = "grey90"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  geom_text_repel(
+    data = subset(res_df, top10 & sig == "significant"),
+    aes(label = rownames(subset(res_df, top10 & sig == "significant"))),
+    color = "black",
+    size = 3
+  )
+
+#print output
+print(volcano_plot)
+```</code></pre>
+
+        <pre><code>```{r volcano-plot, fig.width=10, fig.height=8}
+#all steps as before
+res_df <- as.data.frame(res)
+res_df <- res_df %>% drop_na(padj)
+
+#add categorization of genes
+res_df <- res_df %>%
+  mutate(
+    category = case_when(
+      padj < 0.05 & log2FoldChange > 0 ~ "upregulated",
+      padj < 0.05 & log2FoldChange < 0 ~ "downregulated",
+      TRUE ~ "not significant"
+    )
+  )
+
+top_n <- 10
+res_df <- res_df %>%
+  arrange(desc(abs(log2FoldChange))) %>%
+  mutate(top10 = ifelse(row_number() <= top_n, TRUE, FALSE))
+
+volcano_plot <- ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = category)) +
+  geom_point(size = 0.75) +
+  scale_color_manual(values = c("gray", "purple", "orange"), labels = c("not significant", "downregulated", "upregulated")) +
+  labs(x = "log2 fold change", y = "-log10 adjusted p-value", color = "category") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),  # increase the size of legend text
+    legend.key.size = unit(1.5, "lines"),   # increase the size of legend points
+    panel.grid.major = element_line(color = "grey80"),
+    panel.grid.minor = element_line(color = "grey90"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  geom_text_repel(
+    data = subset(res_df, top10 & category != "not significant"),
+    aes(label = rownames(subset(res_df, top10 & category != "not significant"))),
+    color = "black",
+    size = 3
+  )
+
+print(volcano_plot)
+```</code></pre>
+
+        <h3>Volcano Plot 1</h3>
+        <img src="https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/output_data/p2/Rplot_volcanoplot1.png" alt="Volcano Plot 1">
+
+        <h3>Volcano Plot 2</h3>
+        <img src="https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/output_data/p2/Rplot_volcanoplot2.png" alt="Volcano Plot 2">
+        
+        <h2>Question iv) SRRM4 Expression Analysis</h2>
+        <p>A) The code below produces a boxplot showing the normalized counts for the SRRM4 gene for all samples. This plot is also then compared against the original figure 7b from the reference paper by Irimia et al.</p>
+        <p>B) In this case I used normalized counts for the gene expression comparison as raw counts from sequencing can have high variability and this could mislead me by not accurately reflecting the real differences between the samples either due to differences in sequencing depth or other factors.</p>
+        <p>Using normalized counts adjust for this variability which makes it easier to compare across different samples and makes the data interpretation more clear.</p>
+
+        <pre><code>```{r}
+#set seed for reproducibility
+set.seed(123)
+
+#check and set correct working directory (adjust to your path)
+print(getwd())
+setwd("/Users/andrejhric/Desktop/omics_coursework/input_data/p2")
+
+#load count data (containing gene expression counts for each sample)
+count_data <- read.table("GSE64018_countlevel_12asd_12ctl_edited.txt", header = TRUE, row.names = 1)
+print("count data loaded successfully")
+
+#load metadata txt file
+metadata <- read.table("metadata.txt", header = TRUE, row.names = 1)
+print("metadata loaded successfully")
+
+#convert character metadata to factors
+metadata <- metadata %>% mutate(across(where(is.character), as.factor))
+
+#create DESeqDataSet object
+dds <- DESeqDataSetFromMatrix(countData = count_data, colData = metadata, design = ~ diagnosis)
+#set reference level
+dds$diagnosis <- relevel(dds$diagnosis, ref = "CTL")
+
+#filter out low count reads (less than 10 total reads)
+dds <- dds[rowSums(counts(dds)) > 10, ]
+print("low count reads filtered")
+
+#add size factors and run DESeq
+dds <- DESeq(dds)
+print("DESeq analysis completed")
+
+#create results table
+res <- results(dds)
+print("results extracted")
+
+#convert results to a new dataframe and remove rows with "padj" NA values
+df.plot <- as.data.frame(res) %>% drop_na(padj)
+
+#order dataframe by absolute log2FoldChange values in descending order
+df.plot <- df.plot[order(abs(df.plot$log2FoldChange), decreasing = TRUE), ]
+
+#add column for significance label
+df.plot <- mutate(df.plot, sig = ifelse(df.plot$padj < 0.05, "FDR<0.05", "Not sig"))
+
+#add column for 10 most differentially expressed genes
+top.n <- 10
+df.plot <- cbind(df.plot, top10 = "no")
+top10.index <- rownames(df.plot[df.plot$sig == "FDR<0.05", ][1:top.n, ])
+df.plot[top10.index, "top10"] <- "yes"
+
+#biomart database and dataset
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+
+#biomart query
+g <- getBM(attributes = c("ensembl_gene_id", "external_gene_name"), filters = "ensembl_gene_id", mart = ensembl, values = rownames(df.plot))
+
+#ensure the 'ensembl_id' column is correctly added to df.plot
+df.plot$ensembl_id <- rownames(df.plot)
+
+#merge the two dataframes ensuring the column names match
+df.plot.gene <- merge(df.plot, g, by.x = "ensembl_id", by.y = "ensembl_gene_id")
+colnames(df.plot.gene)[10] <- "gene_name"
+print("gene names added to the dataframe")
+
+#ensure SRRM4 is present
+if("SRRM4" %in% df.plot.gene$gene_name) {
+  print("SRRM4 gene is present.")
+} else {
+  print("SRRM4 gene is NOT present.")
+}
+```</code></pre>
+
+        <pre><code>Output of tests !
+[1] "count data loaded successfully"
+[1] "metadata loaded successfully"
+[1] "low count reads filtered"
+estimating size factors
+estimating dispersions
+gene-wise dispersion estimates
+mean-dispersion relationship
+final dispersion estimates
+fitting model and testing
+-- replacing outliers and refitting for 558 genes
+-- DESeq argument 'minReplicatesForReplace' = 7 
+-- original counts are preserved in counts(dds)
+estimating dispersions
+fitting model and testing
+[1] "DESeq analysis completed"
+[1] "results extracted"
+[1] "gene names added to the dataframe"
+[1] "SRRM4 gene is present."
+```</code></pre>
+
+        <pre><code>```{r SRRM4, fig.height = 6, fig.width = 3, fig.align = "center"}
+#check SRRM4 expression
+srrm4_id <- df.plot.gene[df.plot.gene$gene_name == "SRRM4", ]$ensembl_id
+if(length(srrm4_id) > 0) {
+  
+#extract normalized counts for SRRM4
+srrm4_data <- plotCounts(dds, gene = srrm4_id, intgroup = "diagnosis", returnData = TRUE)
+print(head(srrm4_data)) #check the data being plotted
+
+#set seed for consistant boxplot so that if I run it is always the same !
+set.seed(123)
+q <- ggplot(srrm4_data, aes(diagnosis, count)) +
+  geom_boxplot() +
+  geom_jitter(aes(col = diagnosis), alpha = 0.4, width = 0.1) +
+  labs(x = "Diagnosis", y = "Normalized count") +
+  guides(col = "none") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+print(q)
+} else {
+  print("SRRM4 gene ID not found.")
+}
+
+#save the plot
+ggsave(filename = "/Users/andrejhric/Desktop/omics_coursework/output_data/p2/SRRM4_boxplot.png", plot = q, width = 5, height = 5)
+```</code></pre>
+```
+        <h3>Boxplot of SRRM4 Gene Expression</h3>
+        <img src="https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/output_data/p2/SRRM4_boxplot.png" alt="SRRM4 Boxplot">
+
+        <pre><code>```{r}
+#ANOVA test
+anova_result <- aov(count ~ diagnosis, data = srrm4_data)
+summary(anova_result)
+
+#Kruskal-Wallis test
+kruskal_test <- kruskal.test(count ~ diagnosis, data = srrm4_data)
+kruskal_test
+
+#t-test
+t_test <- t.test(count ~ diagnosis, data = srrm4_data)
+t_test
+```</code></pre>
+
+        <pre><code>Df  Sum Sq Mean Sq F value Pr(>F)
+diagnosis    1  603128  603128   1.937  0.178
+Residuals   22 6849839  311356               
+
+Kruskal-Wallis rank sum test
+
+data:  count by diagnosis
+Kruskal-Wallis chi-squared = 1.08, df = 1, p-value = 0.2987
+
+Welch Two Sample t-test
+
+data:  count by diagnosis
+t = 1.3918, df = 19.057, p-value = 0.18
+alternative hypothesis: true difference in means between group CTL and group ASD is not equal to 0
+95 percent confidence interval:
+ -159.6437  793.7455
+sample estimates:
+mean in group CTL mean in group ASD 
+         1802.112          1485.061 
+```</code></pre>
+
+        <h2>Question vi) Possible Improvements for future</h2>
+        <p>Given that the samples originated from humans and differ biologically, and considering the variations observed in sequencing statistics, I could improve my method by incorporating additional covariates such as sex, age, RNA integrity number (RIN), and brain bank origin to account for confounding variables as they did in the original paper and this could improve the accuracy of the model by creating a multivariate regression model to account for all of these covariates at the same time.</p>
+        <p>Next I could improve the readability of the data by removing low-quality samples and introducing quality control for this.</p>
+        <p>Also, I could use the same more advanced normalization techniques as in the original paper, such as adjusted FPKMs via regression analysis, better accounts for sequencing depth and sample quality variability, increasing comparability. Increase the sample size as I said in the last answer in question v).</p>
+
+        <h2>Question vii) R Shiny App</h2>
+        <p>The code for this part is shown below, however I was not able to embed the R shiny app into the R markdown file or HTML file as well via Shinyapps.io.</p>
+
+        <pre><code>```{r}
+# CODE FOR R SHINY APP #
+
+library(shiny)
+library(ggplot2)
+library(ggrepel)
+library(DESeq2)
+library(DT)
+library(dplyr)
+library(tidyr)
+library(biomaRt)
+library(shinythemes)
+
+set.seed(123)  # Ensure reproducibility
+
+# Load data from GitHub
+load_data <- function() {
+    count_data_url <- "https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/input_data/p2/GSE64018_countlevel_12asd_12ctl_edited.txt"
+    metadata_url <- "https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/input_data/p2/metadata.txt"
+    
+    count_data <- read.table(count_data_url, header = TRUE, row.names = 1)
+    metadata <- read.table(metadata_url, header = TRUE, row.names = 1)
+    
+    metadata <- metadata %>% mutate(across(where(is.character), as.factor))
+    dds <- DESeqDataSetFromMatrix(countData = count_data, colData = metadata, design = ~ diagnosis)
+    dds$diagnosis <- relevel(dds$diagnosis, ref = "CTL")
+    dds <- dds[rowSums(counts(dds)) > 10, ]
+    dds <- DESeq(dds)
+    
+    res <- results(dds)
+    df.plot <- as.data.frame(res) %>% drop_na(padj)
+    df.plot <- df.plot[order(abs(df.plot$log2FoldChange), decreasing = TRUE), ]
+    df.plot <- mutate(df.plot, sig = ifelse(df.plot$padj < 0.05, "FDR<0.05", "Not sig"))
+    df.plot <- cbind(df.plot, top10 = "no")
+    top10.index <- rownames(df.plot[df.plot$sig == "FDR<0.05", ][1:10, ])
+    df.plot[top10.index, "top10"] <- "yes"
+    
+    ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+    g <- getBM(attributes = c("ensembl_gene_id", "external_gene_name"), filters = "ensembl_gene_id", mart = ensembl, values = rownames(df.plot))
+    df.plot$ensembl_id <- rownames(df.plot)
+    df.plot.gene <- merge(df.plot, g, by.x = "ensembl_id", by.y = "ensembl_gene_id")
+    colnames(df.plot.gene)[10] <- "gene_name"
+    
+    df.plot.gene$gene_label <- ifelse(df.plot.gene$gene_name == "", df.plot.gene$ensembl_id, df.plot.gene$gene_name)
+    
+    list(dds = dds, df.plot.gene = df.plot.gene)
+}
+
+data <- load_data()
+dds_DGE <- data$dds
+df.plot.gene <- data$df.plot.gene
+
+ui <- fluidPage(
+    titlePanel("Gene Expression Explorer"),
+    sidebarLayout(
+        sidebarPanel(
+            textInput("gene_id", "Enter Gene ID or Name:", value = ""),
+            actionButton("search", "Search")
+        ),
+        mainPanel(
+            tabsetPanel(
+                tabPanel("Volcano Plot", plotOutput("volcano")),
+                tabPanel("Box Plot", plotOutput("boxplot", height = "600px")),  # Make boxplot taller
+                tabPanel("About", tags$div(id = "about", 
+                                          tags$p("This Shiny app allows users to explore gene expression data from a study on autistic and neurotypical brains."),
+                                          tags$p("Users can search for specific genes and view their expression counts across different samples."),
+                                          tags$p("The app includes a volcano plot for visualizing differential expression and a box plot for viewing gene counts."),
+                                          tags$p("This app is created as part of the coursework for the Omics module in the MSc Bioinformatics program at Birkbeck, University of London.")
+                ))
+            ),
+            fluidRow(
+                column(
+                    12, DT::dataTableOutput("table")
+                )
+            )
+        )
+    )
+)
+
+server <- function(input, output, session) {
+    # Render the table
+    output$table <- DT::renderDataTable({
+        df.plot.gene %>%
+            mutate(across(where(is.numeric), ~ round(., 3)))
+    }, options = list(pageLength = 5, selection = "single"))
+    
+    # Reactive function for gene selection
+    df.click <- reactive({
+        req(input$search)
+        isolate({
+            gene_id <- input$gene_id
+            if (gene_id %in% df.plot.gene$ensembl_id | gene_id %in% df.plot.gene$gene_name) {
+                df.plot.gene[df.plot.gene$ensembl_id == gene_id | df.plot.gene$gene_name == gene_id, ]
+            } else {
+                df.plot.gene[df.plot.gene$gene_name == "SRRM4", ]
+            }
+        })
+    })
+    
+    get.df <- reactive({
+        selected <- input$table_rows_selected
+        if (length(selected)) {
+            df.plot.gene[selected, ]
+        } else {
+            df.click()
+        }
+    })
+    
+    # Volcano plot
+    output$volcano <- renderPlot({
+        p <- ggplot(df.plot.gene, aes(log2FoldChange, -log10(padj), col=sig)) +
+            geom_point(size=0.5) + 
+            scale_color_manual(values = c("orange", "gray")) +
+            theme_bw(base_size = 16)
+        p$labels$colour <- "Significance"
+        
+        df.temp <- get.df()
+        p <- p + geom_point(data = df.temp, size=1.5, col="magenta", shape = 23) +
+            geom_text_repel(
+                data = df.temp,
+                aes(label = gene_label),
+                col = "magenta"
+            )
+        p
+    })
+    
+    # Boxplot
+    output$boxplot <- renderPlot({
+        df.temp <- get.df()
+        gene_ensembl <- tail(df.temp, 1)$ensembl_id
+        gene_title <- tail(df.temp, 1)$gene_label
+        
+        gene_data <- plotCounts(dds_DGE, gene_ensembl, "diagnosis", returnData = TRUE)
+        
+        q <- ggplot(gene_data, aes(diagnosis, count)) +
+            geom_boxplot() +
+            geom_jitter(aes(col = diagnosis), alpha = 0.4, width = 0.1) +
+            labs(
+                title = gene_title,
+                x = "Diagnosis",
+                y = "Normalized count"
+            ) +
+            guides(col = "none") +
+            theme_bw(base_size = 16) +
+            theme(plot.title = element_text(hjust = 0.5))
+        q
+    }, height = 600)  # Make boxplot taller
+}
+
+shinyApp(ui = ui, server = server)
+```</code></pre>
+
+<div class="note">
+   I've noticed my Shiny app takes too long to start, especially when hosted on shinyapps.io, where it can't run properly because it exceeds the 60-second load time limit. To fix this I could follow these steps which I found after looking more into optimal R shiny app making however with my limited knowledge I did not apply these for deployment on the Shinnyapps.io platform.
+   
+    <ul>
+        <li><strong>Pre-compute results:</strong> I could run the data analyses before loading the app and just load these ready results when the app starts. This should speed up the start time a lot but also this might take too much time.</li>
+        <li><strong>Load data as needed:</strong> Change the app so it only loads basic data at first and compute more detailed data can load later, only if users ask for it.</li>
+        <li><strong>Break the app into parts:</strong> Organize the app into sections that work independently. This way, each part only loads its own data when it's actually used.</li>
+    </ul>
+    .
+
+</div>
 </body>
 </html>
+

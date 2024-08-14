@@ -9,3 +9,6 @@ input_data/p1/fastq/*.fq
 input_data/p1/fastq/*.zip
 .Rproj.user
 .DS_Store
+# Ignore large files
+input_data/p1/fastq/input/part1/fastq/trimmed_Negative.fq
+input_data/p2/.RData
