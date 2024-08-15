@@ -546,41 +546,65 @@ ggsave(filename = "/Users/andrejhric/Desktop/omics_coursework/output_data/p2/SRR
 ```
         <h3>Boxplot of SRRM4 Gene Expression</h3>
         <img src="https://raw.githubusercontent.com/Andrej-Hric/Omics_coursework/main/output_data/p2/SRRM4_boxplot.png" alt="SRRM4 Boxplot">
+    </code></pre>
 
-        <pre><code>```{r}
-#ANOVA test
-anova_result <- aov(count ~ diagnosis, data = srrm4_data)
-summary(anova_result)
 
-#Kruskal-Wallis test
-kruskal_test <- kruskal.test(count ~ diagnosis, data = srrm4_data)
-kruskal_test
 
-#t-test
-t_test <- t.test(count ~ diagnosis, data = srrm4_data)
-t_test
-```</code></pre>
 
-        <pre><code>Df  Sum Sq Mean Sq F value Pr(>F)
-diagnosis    1  603128  603128   1.937  0.178
-Residuals   22 6849839  311356               
+    <h2>Question v) Result Comparison to Original Paper for SRRM4 Gene</h2>
+    <p>
+        To look at the difference in SRRM4 expression between control and ASD groups, I used ANOVA (p = 0.178), 
+        Kruskal-Wallis (p = 0.2987), and two Sample t-test (p = 0.18), all showing no significant difference (p > 0.05). 
+        These p-values indicate that there is no detectable or significant differential expression between the two groups 
+        as it's not statistically significant. However, the difference between my and the original paper's results might be 
+        because they used more complex normalization methods and included additional covariates like sex, age, brain bank origin, RIN  
+        and PCA components. They included these covariates in their model, whereas I only focused on gene expression 
+        based on diagnosis, just as suggested by the original figure 7b, which might have been my oversight.
+    </p>
+    <p>
+        Also, they had a larger sample size and used more complex statistical techniques.
+    </p>
+    
+    <pre><code>
+    
+    #ANOVA test
+    anova_result <- aov(count ~ diagnosis, data = srrm4_data)
+    summary(anova_result)
+    
+    #Kruskal-Wallis test
+    kruskal_test <- kruskal.test(count ~ diagnosis, data = srrm4_data)
+    kruskal_test
+    
+    #t-test
+    t_test <- t.test(count ~ diagnosis, data = srrm4_data)
+    t_test
+    </code></pre>
+    
+    <pre><code>Df  Sum Sq Mean Sq F value Pr(>F)
+    diagnosis    1  603128  603128   1.937  0.178
+    Residuals   22 6849839  311356               
+    
+    Kruskal-Wallis rank sum test
+    
+    data:  count by diagnosis
+    Kruskal-Wallis chi-squared = 1.08, df = 1, p-value = 0.2987
+    
+    Welch Two Sample t-test
+    
+    data:  count by diagnosis
+    t = 1.3918, df = 19.057, p-value = 0.18
+    alternative hypothesis: true difference in means between group CTL and group ASD is not equal to 0
+    95 percent confidence interval:
+     -159.6437  793.7455
+    sample estimates:
+    mean in group CTL mean in group ASD 
+             1802.112          1485.061 
+    </code></pre>
 
-Kruskal-Wallis rank sum test
 
-data:  count by diagnosis
-Kruskal-Wallis chi-squared = 1.08, df = 1, p-value = 0.2987
 
-Welch Two Sample t-test
 
-data:  count by diagnosis
-t = 1.3918, df = 19.057, p-value = 0.18
-alternative hypothesis: true difference in means between group CTL and group ASD is not equal to 0
-95 percent confidence interval:
- -159.6437  793.7455
-sample estimates:
-mean in group CTL mean in group ASD 
-         1802.112          1485.061 
-```</code></pre>
+</code></pre>
 
         <h2>Question vi) Possible Improvements for future</h2>
         <p>Given that the samples originated from humans and differ biologically, and considering the variations observed in sequencing statistics, I could improve my method by incorporating additional covariates such as sex, age, RNA integrity number (RIN), and brain bank origin to account for confounding variables as they did in the original paper and this could improve the accuracy of the model by creating a multivariate regression model to account for all of these covariates at the same time.</p>
